@@ -1,3 +1,10 @@
+build-publish.gradle
+build/
+.gradle/
+.classpath
+.project
+.settings/
+bin/
 *.class
 
 # Package Files #

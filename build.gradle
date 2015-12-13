@@ -1,0 +1,61 @@
+apply plugin:'java'
+apply plugin:'eclipse'
+
+apply from:'build-version.gradle'
+apply from:'build-dependencies.gradle'
+
+
+group = 'de.emesit'
+defaultTasks 'onejar'
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'http://maven.tmatesoft.com/content/repositories/releases/'
+    }
+}
+
+def mf = manifest {
+    attributes 'Implementation-Title': project.name, 
+               'Implementation-Version': project.version, 
+               'Implementation-Vendor': 'emesit GmbH & Co. KG', 
+               'Main-Class': 'de.emesit.svnrev.SvnRev'
+}
+
+jar {
+    manifest {
+        from mf
+    }
+}
+
+def onejarLibFilter = { file ->
+    boolean isUsed = false
+    [ 'svnkit-', 'sqljet-', 'sequence-library-' ].each {
+         if (file.name.startsWith(it)) {
+             isUsed = true
+         }
+    }
+    file.name.endsWith(".jar") && isUsed
+}
+
+task onejar(type:Jar) {
+    baseName = project.name + '-all'
+    manifest {
+        from mf
+    }
+    from ({ configurations.runtime.filter(onejarLibFilter).collect { it.isDirectory() ? it : zipTree(it) } }) {
+        exclude "*.build.properties"
+        exclude "META-INF/LICENSE.txt"
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    with jar
+}
+
+task 'get-deps'(type: Copy) {
+    file('build/libs-runtime').mkdirs()
+    from configurations.runtime
+    exclude '**/*.zip'
+    into 'build/libs-runtime'
+}
